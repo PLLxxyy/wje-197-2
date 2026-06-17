@@ -261,10 +261,14 @@ export default function Canvas({
       }
       if ((tool === 'rectangle' || tool === 'ellipse') && shapeStart.current && shapeCurrent.current) {
         const layer = getActiveLayer();
+        const startPt = shapeStart.current;
+        const endPt = shapeCurrent.current;
+        shapeStart.current = null;
+        shapeCurrent.current = null;
         if (layer) {
           const ctx = layer.canvas.getContext('2d')!;
-          const [x0, y0] = shapeStart.current;
-          const [x1, y1] = shapeCurrent.current;
+          const [x0, y0] = startPt;
+          const [x1, y1] = endPt;
           let pts: [number, number][];
           if (tool === 'rectangle') {
             pts = rectanglePoints(x0, y0, x1, y1);
@@ -274,9 +278,9 @@ export default function Canvas({
           for (const [px, py] of pts) {
             drawStamp(ctx, px, py, false);
           }
-          render();
         }
         onAfterStroke();
+        render();
       }
     }
     drawing.current = false;
