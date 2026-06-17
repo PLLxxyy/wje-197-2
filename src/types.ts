@@ -1,4 +1,4 @@
-export type Tool = 'brush' | 'eraser' | 'fill' | 'eyedropper' | 'move';
+export type Tool = 'brush' | 'eraser' | 'fill' | 'eyedropper' | 'move' | 'rectangle' | 'ellipse';
 
 export interface LayerData {
   id: string;

@@ -6,6 +6,8 @@ const TOOLS: { key: Tool; icon: string; label: string }[] = [
   { key: 'fill',       icon: '🎨',  label: '填充' },
   { key: 'eyedropper', icon: '👇',  label: '吸管' },
   { key: 'move',       icon: '✨',  label: '移动' },
+  { key: 'rectangle',  icon: '▭',   label: '矩形' },
+  { key: 'ellipse',    icon: '◯',   label: '椭圆' },
 ];
 
 interface Props {
@@ -33,7 +35,7 @@ export default function Toolbar({ tool, brushSize, onToolChange, onBrushSizeChan
             </button>
           ))}
         </div>
-        {(tool === 'brush' || tool === 'eraser') && (
+        {(tool === 'brush' || tool === 'eraser' || tool === 'rectangle' || tool === 'ellipse') && (
           <div className="brush-size">
             <label>笔刷</label>
             <input

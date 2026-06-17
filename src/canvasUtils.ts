@@ -71,6 +71,79 @@ export function bresenhamLine(x0: number, y0: number, x1: number, y1: number): [
   return pts;
 }
 
+/** Draw a rectangle outline – returns array of pixel coordinates */
+export function rectanglePoints(x0: number, y0: number, x1: number, y1: number): [number, number][] {
+  const pts: [number, number][] = [];
+  const minX = Math.min(x0, x1);
+  const maxX = Math.max(x0, x1);
+  const minY = Math.min(y0, y1);
+  const maxY = Math.max(y0, y1);
+  for (let x = minX; x <= maxX; x++) {
+    pts.push([x, minY]);
+    pts.push([x, maxY]);
+  }
+  for (let y = minY + 1; y < maxY; y++) {
+    pts.push([minX, y]);
+    pts.push([maxX, y]);
+  }
+  return pts;
+}
+
+/** Midpoint ellipse algorithm – returns array of pixel coordinates */
+export function ellipsePoints(x0: number, y0: number, x1: number, y1: number): [number, number][] {
+  const pts: [number, number][] = [];
+  const cx = Math.floor((x0 + x1) / 2);
+  const cy = Math.floor((y0 + y1) / 2);
+  const rx = Math.abs(x1 - x0) / 2;
+  const ry = Math.abs(y1 - y0) / 2;
+  if (rx < 0.5 || ry < 0.5) return pts;
+
+  let x = 0;
+  let y = Math.round(ry);
+  const rx2 = rx * rx;
+  const ry2 = ry * ry;
+  const twoRx2 = 2 * rx2;
+  const twoRy2 = 2 * ry2;
+  let p = ry2 - rx2 * ry + 0.25 * rx2;
+  let px = 0;
+  let py = twoRx2 * y;
+
+  while (px < py) {
+    pts.push([cx + x, cy + y]);
+    pts.push([cx - x, cy + y]);
+    pts.push([cx + x, cy - y]);
+    pts.push([cx - x, cy - y]);
+    x++;
+    px += twoRy2;
+    if (p < 0) {
+      p += ry2 + px;
+    } else {
+      y--;
+      py -= twoRx2;
+      p += ry2 + px - py;
+    }
+  }
+
+  p = ry2 * (x + 0.5) * (x + 0.5) + rx2 * (y - 1) * (y - 1) - rx2 * ry2;
+  while (y >= 0) {
+    pts.push([cx + x, cy + y]);
+    pts.push([cx - x, cy + y]);
+    pts.push([cx + x, cy - y]);
+    pts.push([cx - x, cy - y]);
+    y--;
+    py -= twoRx2;
+    if (p > 0) {
+      p += rx2 - py;
+    } else {
+      x++;
+      px += twoRy2;
+      p += rx2 - py + px;
+    }
+  }
+
+  return pts;
+}
+
 /** Flood-fill from (startX, startY) with `fillColor` on a canvas */
 export function floodFill(canvas: HTMLCanvasElement, startX: number, startY: number, fillColor: string) {
   const ctx = canvas.getContext('2d')!;

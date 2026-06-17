@@ -167,6 +167,8 @@ export default function App() {
       if (e.key === 'f' || e.key === 'F') setTool('fill');
       if (e.key === 'i' || e.key === 'I') setTool('eyedropper');
       if (e.key === 'm' || e.key === 'M') setTool('move');
+      if (e.key === 'r' || e.key === 'R') setTool('rectangle');
+      if (e.key === 'o' || e.key === 'O') setTool('ellipse');
       if (e.key === '[') setBrushSize(s => Math.max(1, s - 1));
       if (e.key === ']') setBrushSize(s => Math.min(16, s + 1));
     };

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { Tool } from '../types';
-import { bresenhamLine, floodFill } from '../canvasUtils';
+import { bresenhamLine, floodFill, rectanglePoints, ellipsePoints } from '../canvasUtils';
 
 interface LayerRef {
   canvas: HTMLCanvasElement;
@@ -37,6 +37,8 @@ export default function Canvas({
   const lastPx  = useRef<[number, number] | null>(null);
   const moveStart = useRef<[number, number] | null>(null);
   const moveLayerStart = useRef<[number, number]>([0, 0]);
+  const shapeStart = useRef<[number, number] | null>(null);
+  const shapeCurrent = useRef<[number, number] | null>(null);
 
   // Ensure compositing canvas
   if (!compRef.current) {
@@ -88,7 +90,36 @@ export default function Canvas({
         dctx.stroke();
       }
     }
-  }, [canvasW, canvasH, zoom, showGrid, layerRefs]);
+
+    // Shape preview (dashed outline)
+    if ((tool === 'rectangle' || tool === 'ellipse') && shapeStart.current && shapeCurrent.current) {
+      const [x0, y0] = shapeStart.current;
+      const [x1, y1] = shapeCurrent.current;
+      let pts: [number, number][];
+      if (tool === 'rectangle') {
+        pts = rectanglePoints(x0, y0, x1, y1);
+      } else {
+        pts = ellipsePoints(x0, y0, x1, y1);
+      }
+      dctx.save();
+      dctx.setLineDash([4 * zoom / 3, 2 * zoom / 3]);
+      dctx.strokeStyle = color;
+      dctx.lineWidth = zoom;
+      dctx.lineCap = 'butt';
+      dctx.lineJoin = 'miter';
+      const half = Math.floor(brushSize / 2);
+      for (const [px, py] of pts) {
+        for (let bx = 0; bx < brushSize; bx++) {
+          for (let by = 0; by < brushSize; by++) {
+            const rx = (px - half + bx) * zoom;
+            const ry = (py - half + by) * zoom;
+            dctx.strokeRect(rx + zoom * 0.1, ry + zoom * 0.1, zoom * 0.8, zoom * 0.8);
+          }
+        }
+      }
+      dctx.restore();
+    }
+  }, [canvasW, canvasH, zoom, showGrid, layerRefs, tool, color, brushSize]);
 
   // Render on every relevant change
   useEffect(() => {
@@ -142,7 +173,6 @@ export default function Canvas({
     if (!layer) return;
 
     if (tool === 'eyedropper') {
-      // Pick from composited canvas
       const comp = compRef.current!;
       const ctx = comp.getContext('2d')!;
       const d = ctx.getImageData(px, py, 1, 1).data;
@@ -159,8 +189,15 @@ export default function Canvas({
       return;
     }
 
-    // Snapshot before stroke begins
     onLayerSnapshot();
+
+    if (tool === 'rectangle' || tool === 'ellipse') {
+      drawing.current = true;
+      shapeStart.current = [px, py];
+      shapeCurrent.current = [px, py];
+      render();
+      return;
+    }
 
     drawing.current = true;
     lastPx.current = [px, py];
@@ -174,7 +211,6 @@ export default function Canvas({
       return;
     }
 
-    // Brush or eraser - draw first point
     drawStamp(ctx, px, py, tool === 'eraser');
     render();
   }, [tool, pixelAt, getActiveLayer, onColorPick, onLayerSnapshot, drawStamp, color, render, onAfterStroke]);
@@ -190,6 +226,12 @@ export default function Canvas({
       const dy = Math.round((e.clientY - moveStart.current[1]) / zoom);
       layer.offsetX = moveLayerStart.current[0] + dx;
       layer.offsetY = moveLayerStart.current[1] + dy;
+      render();
+      return;
+    }
+
+    if (tool === 'rectangle' || tool === 'ellipse') {
+      shapeCurrent.current = [px, py];
       render();
       return;
     }
@@ -217,11 +259,32 @@ export default function Canvas({
       if ((tool === 'brush' || tool === 'eraser') && lastPx.current) {
         onAfterStroke();
       }
+      if ((tool === 'rectangle' || tool === 'ellipse') && shapeStart.current && shapeCurrent.current) {
+        const layer = getActiveLayer();
+        if (layer) {
+          const ctx = layer.canvas.getContext('2d')!;
+          const [x0, y0] = shapeStart.current;
+          const [x1, y1] = shapeCurrent.current;
+          let pts: [number, number][];
+          if (tool === 'rectangle') {
+            pts = rectanglePoints(x0, y0, x1, y1);
+          } else {
+            pts = ellipsePoints(x0, y0, x1, y1);
+          }
+          for (const [px, py] of pts) {
+            drawStamp(ctx, px, py, false);
+          }
+          render();
+        }
+        onAfterStroke();
+      }
     }
     drawing.current = false;
     lastPx.current = null;
     moveStart.current = null;
-  }, [tool, onAfterStroke]);
+    shapeStart.current = null;
+    shapeCurrent.current = null;
+  }, [tool, onAfterStroke, getActiveLayer, drawStamp, render]);
 
   const handleMouseLeave = useCallback(() => {
     handleMouseUp();
